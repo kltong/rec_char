@@ -1,0 +1,79 @@
+#!/usr/bin/python2.7
+# -*- coding:utf-8 -*-
+"""
+说明: 对建模之前图片进行预处理
+"""
+
+from PIL import Image
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+import time
+
+
+rows = 200
+columns = 200
+
+
+def get_files(root_path, files):
+    """
+    说明： 从传入空的list：files，递归将path路径下所有文件绝对路径列出到files
+    """
+    files_tmp = os.listdir(root_path)
+    for eachFile in files_tmp:
+        if os.path.isfile(root_path+eachFile):
+            files.append(root_path + eachFile)
+        else:
+            get_files(root_path + os.path.sep + eachFile + os.path.sep, files)
+
+
+def size_height(img_list):
+    """
+    说明：对传入的imgs列表中图片的高和宽进行统计显示
+    """
+    size_list = [list(Image.open(img).size) for img in img_list]
+    m_list = [size[0] for size in size_list]
+    n_list = [size[1] for size in size_list]
+    plt.figure(12)
+    plt.subplot(121)
+    plt.title('height hist')
+    plt.hist(m_list, bins=20, range=(0, 600), facecolor='green', edgecolor='blue', alpha=1, histtype='bar')
+    plt.subplot(122)
+    plt.title('weight hist')
+    plt.hist(n_list, bins=20, range=(0, 600), facecolor='green', edgecolor='blue', alpha=1, histtype='bar')
+    plt.show()
+
+
+def get_pixel(image_path_list):
+    """
+    说明： 传入图片路径列表，返回列表中每张图片的像素值，
+          返回列表每个元素都是np.array(200,200)
+          图片读入后统一高宽位200x200
+          传入不是列表则直接返回
+    """
+    if type(image_path_list) != list:
+        return
+    image_list = [Image.open(image_path).resize((rows, columns)) for image_path in image_path_list]
+    for i in range(len(image_list)):
+        # print i
+        image_pixel = image_list[i].load()
+        tmp_array = np.zeros((rows, columns))
+        for j in range(rows):
+            for k in range(columns):
+                tmp_array[j, k] = image_pixel[j, k]
+        image_list[i] = tmp_array
+    return image_list
+
+
+path = '/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train'
+imgs = []
+get_files(path, imgs)
+print 'done1'
+# size_height(imgs)   通过分析高、宽分布直方图，取定缩放比例
+print time.time()
+images_pixel_list = get_pixel(imgs[0:100])
+print time.time()
+print 'done2'
+print time.time()
+
+
