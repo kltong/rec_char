@@ -112,13 +112,13 @@ def next_batch(image_list, label_list, char_dict, batch_size):
     #        [[1 if j == char_dict[label_list[index_list[j]]] else 0 for i in range(100)] for j in range(batch_size)]
 
 
-path = '/media/bao/panD/ForU/competition/TMD/data/train'
-images = []
-images_labels = []
-ch_char_dict = {}
-get_files_labels(path, images, images_labels, ch_char_dict, 'root_label')
-x_train_list, y_train_list, x_test_list, y_test_list = sep_test_train(images, images_labels)
-x, y = next_batch(x_test_list, y_test_list, ch_char_dict, 100)
+# path = '/media/bao/panD/ForU/competition/TMD/data/train'
+# images = []
+# images_labels = []
+# ch_char_dict = {}
+# get_files_labels(path, images, images_labels, ch_char_dict, 'root_label')
+# x_train_list, y_train_list, x_test_list, y_test_list = sep_test_train(images, images_labels)
+# x, y = next_batch(x_test_list, y_test_list, ch_char_dict, 100)
 
 """
 说明: 测试像素矩阵与汉字对应关系
@@ -142,13 +142,13 @@ x, y = next_batch(x_test_list, y_test_list, ch_char_dict, 100)
 #                 ff += 1
 # print ff
 
-print 'done1'
-# for char in ch_char_dict:
-#     print char+':'+str(ch_char_dict[char])
-# size_height(images)   # 通过分析高、宽分布直方图，取定缩放比例
-print time.time()
-images_pixel_list = get_pixel(images[0:100])
-print time.time()
-print 'done2'
-print time.time()
+# print 'done1'
+# # for char in ch_char_dict:
+# #     print char+':'+str(ch_char_dict[char])
+# # size_height(images)   # 通过分析高、宽分布直方图，取定缩放比例
+# print time.time()
+# images_pixel_list = get_pixel(images[0:100])
+# print time.time()
+# print 'done2'
+# print time.time()
 
