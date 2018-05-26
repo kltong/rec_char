@@ -9,7 +9,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-
+import random
 
 rows = 200
 columns = 200
@@ -27,11 +27,44 @@ def get_files(root_path, files):
             get_files(root_path + os.path.sep + eachFile + os.path.sep, files)
 
 
+def sep_test_train(input_list, output_list):
+    train_input_list = []
+    train_output_list = []
+    test_input_list = []
+    test_output_list = []
+    for i in range(len(input_list)):
+        if 0 == random.randint(0, 2) % 3:
+            test_input_list.append(input_list[i])
+            test_output_list.append(output_list[i])
+        else:
+            train_input_list.append(input_list[i])
+            train_output_list.append(output_list[i])
+    return train_input_list, train_output_list, test_input_list,test_output_list
+
+
+def get_files_labels(root_path, files, labels, label_dict, now_label):
+    """
+    说明： 从传入空的list：files，递归将path路径下所有文件绝对路径列出到files
+            labels 为标签列表
+            now_label 为当前目录标签
+    """
+    index = 0
+    files_tmp = os.listdir(root_path)
+    for eachFile in files_tmp:
+        if os.path.isfile(root_path+eachFile):
+            files.append(root_path + eachFile)
+            labels.append(now_label)
+        else:
+            get_files_labels(root_path + os.path.sep + eachFile + os.path.sep, files, labels, label_dict, eachFile)
+            label_dict[eachFile] = index
+            index += 1
+
+
 def size_height(img_list):
     """
-    说明：对传入的imgs列表中图片的高和宽进行统计显示
+    说明：对传入的images列表中图片的高和宽进行统计显示
     """
-    size_list = [list(Image.open(img).size) for img in img_list]
+    size_list = [list(Image.open(im).size) for im in img_list]
     m_list = [size[0] for size in size_list]
     n_list = [size[1] for size in size_list]
     plt.figure(12)
@@ -53,25 +86,68 @@ def get_pixel(image_path_list):
     """
     if type(image_path_list) != list:
         return
-    image_list = [Image.open(image_path).resize((rows, columns)) for image_path in image_path_list]
-    for i in range(len(image_list)):
-        # print i
-        image_pixel = image_list[i].load()
-        tmp_array = np.zeros((rows, columns))
-        for j in range(rows):
-            for k in range(columns):
-                tmp_array[j, k] = image_pixel[j, k]
-        image_list[i] = tmp_array
+    image_list = [np.asarray(Image.open(image_path).resize((rows, columns))).tolist() for image_path in image_path_list]
     return image_list
 
 
-path = '/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train'
-imgs = []
-get_files(path, imgs)
+def next_batch(image_list, label_list, char_dict, batch_size):
+    data_size = len(image_list)
+    index_list = [random.randint(0, data_size-1) for q in range(batch_size)]
+
+    x_batch = []
+    for i in range(batch_size):
+        x_batch.append(image_list[index_list[i]])
+
+    y_batch = []
+    for i in range(batch_size):
+        y_signal = []
+        label_index = char_dict[label_list[index_list[i]]]
+        for j in range(100):
+            y_signal.append(1 if j == label_index else 0)
+        y_batch.append(y_signal)
+
+    return get_pixel(x_batch), y_batch
+
+    # return [image_list[index_list[i]] for i in range(batch_size)], \
+    #        [[1 if j == char_dict[label_list[index_list[j]]] else 0 for i in range(100)] for j in range(batch_size)]
+
+
+path = '/media/bao/panD/ForU/competition/TMD/data/train'
+images = []
+images_labels = []
+ch_char_dict = {}
+get_files_labels(path, images, images_labels, ch_char_dict, 'root_label')
+x_train_list, y_train_list, x_test_list, y_test_list = sep_test_train(images, images_labels)
+x, y = next_batch(x_test_list, y_test_list, ch_char_dict, 100)
+
+"""
+说明: 测试像素矩阵与汉字对应关系
+"""
+# for i in range(len(x)):
+#     img = Image.fromarray(x[i])
+#     index_tmp = y[i].index(max(y[i]))
+#     for key in ch_char_dict:
+#         if ch_char_dict[key] == index_tmp:
+#             img.show()
+#             print key
+"""
+说明：测试label对应功能
+"""
+# ff = 0
+# for i in range(len(y)):
+#     index_tmp = y[i].index(max(y[i]))
+#     for key in ch_char_dict:
+#         if ch_char_dict[key] == index_tmp:
+#             if key not in x[i]:
+#                 ff += 1
+# print ff
+
 print 'done1'
-# size_height(imgs)   通过分析高、宽分布直方图，取定缩放比例
+# for char in ch_char_dict:
+#     print char+':'+str(ch_char_dict[char])
+# size_height(images)   # 通过分析高、宽分布直方图，取定缩放比例
 print time.time()
-images_pixel_list = get_pixel(imgs[0:100])
+images_pixel_list = get_pixel(images[0:100])
 print time.time()
 print 'done2'
 print time.time()
