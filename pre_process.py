@@ -3,13 +3,13 @@
 """
 说明: 对建模之前图片进行预处理
 """
-
+import tensorflow as tf
 from PIL import Image
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-import time
 import random
+
 
 rows = 200
 columns = 200
@@ -32,14 +32,14 @@ def sep_test_train(input_list, output_list):
     train_output_list = []
     test_input_list = []
     test_output_list = []
-    for i in range(len(input_list)):
+    for index in range(len(input_list)):
         if 0 == random.randint(0, 2) % 3:
-            test_input_list.append(input_list[i])
-            test_output_list.append(output_list[i])
+            test_input_list.append(input_list[index])
+            test_output_list.append(output_list[index])
         else:
-            train_input_list.append(input_list[i])
-            train_output_list.append(output_list[i])
-    return train_input_list, train_output_list, test_input_list,test_output_list
+            train_input_list.append(input_list[index])
+            train_output_list.append(output_list[index])
+    return train_input_list, train_output_list, test_input_list, test_output_list
 
 
 def get_files_labels(root_path, files, labels, label_dict, now_label):
@@ -95,30 +95,100 @@ def next_batch(image_list, label_list, char_dict, batch_size):
     index_list = [random.randint(0, data_size-1) for q in range(batch_size)]
 
     x_batch = []
-    for i in range(batch_size):
-        x_batch.append(image_list[index_list[i]])
+    for index in range(batch_size):
+        x_batch.append(image_list[index_list[index]])
 
     y_batch = []
-    for i in range(batch_size):
+    for index in range(batch_size):
         y_signal = []
-        label_index = char_dict[label_list[index_list[i]]]
+        label_index = char_dict[label_list[index_list[index]]]
         for j in range(100):
             y_signal.append(1 if j == label_index else 0)
         y_batch.append(y_signal)
 
-    return get_pixel(x_batch), y_batch
-
-    # return [image_list[index_list[i]] for i in range(batch_size)], \
-    #        [[1 if j == char_dict[label_list[index_list[j]]] else 0 for i in range(100)] for j in range(batch_size)]
+    return x_batch, y_batch
 
 
-# path = '/media/bao/panD/ForU/competition/TMD/data/train'
-# images = []
-# images_labels = []
-# ch_char_dict = {}
-# get_files_labels(path, images, images_labels, ch_char_dict, 'root_label')
-# x_train_list, y_train_list, x_test_list, y_test_list = sep_test_train(images, images_labels)
-# x, y = next_batch(x_test_list, y_test_list, ch_char_dict, 100)
+def gen_tfrecord(path, inputs, labels):
+    writer = tf.python_io.TFRecordWriter(path)
+    if len(labels) == len(inputs):
+        data_length = len(labels)
+        for index in range(data_length):
+            print index
+            image = Image.open(inputs[index])
+            image = image.resize((rows, columns))
+            image_raw = image.tobytes()
+            label_index = labels[index]
+            example = tf.train.Example(
+                features=tf.train.Features(
+                    feature={
+                        'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label_index])),
+                        'image_raw': tf.train.Feature(bytes_list=tf.train.BytesList(value=[image_raw]))
+                    }
+                )
+            )
+            writer.write(example.SerializeToString())
+        writer.close()
+    else:
+        print 'gen_tfrecord 参数错误'
+
+
+def img2record():
+    images_path = '/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train'
+    images = []
+    image_labels = []
+    ch_char_dict = {}
+    get_files_labels(images_path, images, image_labels, ch_char_dict, 'root_label')
+    image_labels = [ch_char_dict[label_char] for label_char in image_labels]
+    class_path = open('/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train-tfrecord/classes.txt', 'w')
+    classes = [char+':'+str(ch_char_dict[char])+'\n' for char in ch_char_dict]
+    class_path.writelines(classes)
+    print 'images,images_labels get done'
+    x_train_list, y_train_list, x_test_list, y_test_list = sep_test_train(images, image_labels)
+    train_record_path = '/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train-tfrecord/img-tfrecord'
+    gen_tfrecord(train_record_path, x_train_list, y_train_list)
+    print 'gen train record done'
+    test_record_path = '/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/test-tfrecord/img-tfrecord'
+    gen_tfrecord(test_record_path, x_test_list, y_test_list)
+    print 'gen test record done'
+
+
+def read_and_decode(record_path):
+    filename_queue = tf.train.string_input_producer([record_path])
+    reader = tf.TFRecordReader()
+    _, serialized_example = reader.read(filename_queue)
+    features = tf.parse_single_example(serialized_example,
+                                       features={
+                                           'label': tf.FixedLenFeature([], tf.int64),
+                                           'image_raw': tf.FixedLenFeature([], tf.string)
+                                       })
+    input_x = tf.decode_raw(features['image_raw'], tf.uint8)
+    input_x = tf.reshape(input_x, [200, 200])
+    # img = tf.cast(img, tf.float32) * (1. / 255) - 0.5
+    label_y = tf.cast(features['label'], tf.int8)
+    # label = tf.reshape(label, [1, 100])
+    return input_x, label_y
+
+
+# img2record()
+
+img, label = read_and_decode('/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train-tfrecord/img-tfrecord')
+
+
+# 使用shuffle_batch可以随机打乱输入
+img_batch, label_batch = tf.train.shuffle_batch([img, label], batch_size=1, capacity=20000, min_after_dequeue=1000)
+init = tf.initialize_all_variables()
+
+with tf.Session() as sess:
+    sess.run(init)
+    threads = tf.train.start_queue_runners(sess=sess)
+    for i in range(300):
+        val, l = sess.run([img_batch, label_batch])
+        val = val[0]
+        l = l[0]
+        Image.fromarray(val).show()
+        print(val.shape, l)
+
 
 """
 说明: 测试像素矩阵与汉字对应关系
@@ -151,4 +221,3 @@ def next_batch(image_list, label_list, char_dict, batch_size):
 # print time.time()
 # print 'done2'
 # print time.time()
-
