@@ -172,22 +172,22 @@ def read_and_decode(record_path):
 
 # img2record()
 
-img, label = read_and_decode('/media/qappsom/pan1/bao/study/dataset/手写体汉字识别/train-tfrecord/img-tfrecord')
-
-
-# 使用shuffle_batch可以随机打乱输入
-img_batch, label_batch = tf.train.shuffle_batch([img, label], batch_size=1, capacity=20000, min_after_dequeue=1000)
-init = tf.initialize_all_variables()
-
-with tf.Session() as sess:
-    sess.run(init)
-    threads = tf.train.start_queue_runners(sess=sess)
-    for i in range(300):
-        val, l = sess.run([img_batch, label_batch])
-        val = val[0]
-        l = l[0]
-        Image.fromarray(val).show()
-        print(val.shape, l)
+# img, label = read_and_decode('/media/bao/panD/ForU/competition/TMD/data/train-text/img-tfrecord')
+#
+#
+# # 使用shuffle_batch可以随机打乱输入
+# img_batch, label_batch = tf.train.shuffle_batch([img, label], batch_size=1, capacity=20000, min_after_dequeue=1000)
+# init = tf.initialize_all_variables()
+#
+# with tf.Session() as sess:
+#     sess.run(init)
+#     threads = tf.train.start_queue_runners(sess=sess)
+#     for i in range(300):
+#         val, l = sess.run([img_batch, label_batch])
+#         val = val[0]
+#         l = l[0]
+#         Image.fromarray(val).show()
+#         print(val.shape, l)
 
 
 """
